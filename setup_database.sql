@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS can_bo (
 CREATE TABLE IF NOT EXISTS phong_thi (
     stt       INT,
     ten_phong VARCHAR(50) NOT NULL,
-    dia_diem  VARCHAR(100),
+    ghi_chu  VARCHAR(100),
     PRIMARY KEY (ten_phong)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 

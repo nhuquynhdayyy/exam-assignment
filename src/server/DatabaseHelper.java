@@ -13,7 +13,7 @@ import java.util.List;
  * Lớp helper tương tác với MySQL
  * Schema: phan_cong_thi
  *   - can_bo (stt, ma_gv, ho_ten, ngay_sinh, don_vi)
- *   - phong_thi (stt, ten_phong, dia_diem)
+ *   - phong_thi (stt, ten_phong, ghi_chu)
  *   - ket_qua_phan_cong (id, ca_thi, ma_gv, ho_ten, loai_gt, ten_phong)
  *   - ket_qua_giam_sat (id, ca_thi, ma_gv, ho_ten, phong_gs)
  */
@@ -51,7 +51,7 @@ public class DatabaseHelper {
             CREATE TABLE IF NOT EXISTS phong_thi (
                 stt INT,
                 ten_phong VARCHAR(50) NOT NULL,
-                dia_diem VARCHAR(100),
+                ghi_chu VARCHAR(100),
                 PRIMARY KEY (ten_phong)
             ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
             """,
@@ -107,7 +107,7 @@ public class DatabaseHelper {
     public static void importPhongThi(List<PhongThi> list, int n) throws SQLException {
         Connection conn = getConnection();
         conn.createStatement().execute("TRUNCATE TABLE phong_thi");
-        String sql = "INSERT INTO phong_thi (stt, ten_phong, dia_diem) VALUES (?,?,?)";
+        String sql = "INSERT INTO phong_thi (stt, ten_phong, ghi_chu) VALUES (?,?,?)";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             int count = 0;
             for (PhongThi pt : list) {
@@ -144,13 +144,13 @@ public class DatabaseHelper {
     /** Lấy danh sách phòng thi từ DB */
     public static List<PhongThi> getPhongThi() throws SQLException {
         List<PhongThi> list = new ArrayList<>();
-        String sql = "SELECT stt, ten_phong, dia_diem FROM phong_thi ORDER BY stt";
+        String sql = "SELECT stt, ten_phong, ghi_chu FROM phong_thi ORDER BY stt";
         try (ResultSet rs = getConnection().createStatement().executeQuery(sql)) {
             while (rs.next()) {
                 list.add(new PhongThi(
                     rs.getInt("stt"),
                     rs.getString("ten_phong"),
-                    rs.getString("dia_diem")
+                    rs.getString("ghi_chu")
                 ));
             }
         }
@@ -169,7 +169,14 @@ public class DatabaseHelper {
                 ps.setInt   (1, pc.getCaThi());
                 ps.setString(2, pc.getMaGV());
                 ps.setString(3, pc.getHoTen());
-                ps.setString(4, pc.getVaiTro());
+                String vaiTro = pc.getVaiTro();
+                int loaiGT = 0;
+                if (vaiTro.equalsIgnoreCase("Giám thị 1")) {
+                    loaiGT = 1;
+                } else if (vaiTro.equalsIgnoreCase("Giám thị 2")) {
+                    loaiGT = 2;
+                }
+                ps.setInt(4, loaiGT);
                 ps.setString(5, pc.getTenPhong());
                 ps.addBatch();
             }
@@ -200,7 +207,7 @@ public class DatabaseHelper {
                 int stt = 1;
                 while (rs.next()) {
                     list.add(new PhanCong(stt++, rs.getString("ma_gv"), rs.getString("ho_ten"),
-                        rs.getString("loai_gt"), rs.getString("ten_phong"), rs.getInt("ca_thi")));
+                        (rs.getInt("loai_gt") == 1 ? "Giám thị 1" : "Giám thị 2"), rs.getString("ten_phong"), rs.getInt("ca_thi")));
                 }
             }
         }
