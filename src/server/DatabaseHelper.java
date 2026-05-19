@@ -1,13 +1,17 @@
 package server;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+
 import common.CanBo;
 import common.GiamSat;
 import common.PhanCong;
 import common.PhongThi;
-
-import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Lớp helper tương tác với MySQL
@@ -19,7 +23,7 @@ import java.util.List;
  */
 public class DatabaseHelper {
 
-    private static final String URL      = "jdbc:mysql://localhost:3306/phan_cong_thi?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8";
+    private static final String URL      = "jdbc:mysql://localhost:3307/phan_cong_thi?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8";
     private static final String USER     = "root";
     private static final String PASSWORD = "";
 
