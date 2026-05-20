@@ -8,5 +8,4 @@ server\ExamServer.class
 common\GiamSat.class
 common\PhongThi.class
 server\ExcelHandler.class
-server\ExcelHandler$1.class
 client\ExamClient.class

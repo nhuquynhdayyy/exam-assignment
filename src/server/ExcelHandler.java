@@ -10,7 +10,7 @@ import java.util.*;
 
 public class ExcelHandler {
 
-    // ==================== 1. ĐỌC FILE CÁN BỘ ====================
+    // ==================== 1. ĐỌC FILE CÁN BỘ (ĐÚNG CỘT THEO ẢNH) ====================
     public static List<CanBo> readCanBo(String filePath) throws IOException {
         List<CanBo> list = new ArrayList<>();
         try (FileInputStream fis = new FileInputStream(filePath);
@@ -22,11 +22,11 @@ public class ExcelHandler {
                 if (isEmptyRow(row)) continue;
                 
                 CanBo cb = new CanBo();
-                // A=0(STT), B=1(Họ Tên), C=2(Ngày sinh), D=3(Mã GV), E=4(Đơn vị)
-                cb.setHoTen(safeStr(row.getCell(1)));   
-                cb.setNgaySinh(safeDate(row.getCell(2))); 
-                cb.setMaGV(safeStr(row.getCell(3)));    
-                cb.setDonVi(safeStr(row.getCell(4)));   
+                // Index 0: STT | 1: Họ tên (B) | 2: Ngày sinh (C) | 3: Mã GV (D) | 4: Đơn vị (E)
+                cb.setHoTen(safeStr(row.getCell(1)));   // Cột B
+                cb.setNgaySinh(safeDate(row.getCell(2))); // Cột C
+                cb.setMaGV(safeStr(row.getCell(3)));    // Cột D
+                cb.setDonVi(safeStr(row.getCell(4)));   // Cột E
                 
                 if (!cb.getMaGV().isBlank()) list.add(cb);
             }
@@ -34,7 +34,6 @@ public class ExcelHandler {
         return list;
     }
 
-    // ==================== 2. ĐỌC FILE PHÒNG THI ====================
     public static List<PhongThi> readPhongThi(String filePath) throws IOException {
         List<PhongThi> list = new ArrayList<>();
         try (FileInputStream fis = new FileInputStream(filePath);
@@ -44,22 +43,19 @@ public class ExcelHandler {
             for (Row row : sheet) {
                 if (firstRow) { firstRow = false; continue; }
                 if (isEmptyRow(row)) continue;
-
                 PhongThi pt = new PhongThi();
-                // A=0(STT), B=1(Phòng thi), C=2(Ghi chú/Địa điểm)
                 pt.setStt(safeInt(row.getCell(0)));
                 pt.setTenPhong(safeStr(row.getCell(1)));
                 pt.setDiaDiem(safeStr(row.getCell(2)));
-                
                 if (!pt.getTenPhong().isBlank()) list.add(pt);
             }
         }
         return list;
     }
 
-    // ==================== 3. GHI FILE PHÂN CÔNG ====================
+    // ==================== 2. GHI FILE PHÂN CÔNG (CHIA SHEET THEO CA) ====================
     public static void writePhanCong(List<PhanCong> allList, String filePath) throws IOException {
-        Map<Integer, List<PhanCong>> byCa = new LinkedHashMap<>();
+        Map<Integer, List<PhanCong>> byCa = new TreeMap<>(); // TreeMap để sắp xếp Ca 1, 2, 3...
         for (PhanCong pc : allList) {
             byCa.computeIfAbsent(pc.getCaThi(), k -> new ArrayList<>()).add(pc);
         }
@@ -71,7 +67,10 @@ public class ExcelHandler {
             CellStyle centerStyle = createCenterStyle(wb);
 
             for (Map.Entry<Integer, List<PhanCong>> entry : byCa.entrySet()) {
-                Sheet sheet = wb.createSheet("Ca " + entry.getKey());
+                // TẠO SHEET MỚI CHO MỖI CA
+                Sheet sheet = wb.createSheet("Ca " + entry.getKey()); 
+                
+                // Vẽ Header (STT, Mã GV, Họ tên, GT1, GT2, Phòng)
                 Row row0 = sheet.createRow(0);
                 createMergedCell(sheet, wb, row0, 0, 0, 1, "STT", headerStyle);
                 createMergedCell(sheet, wb, row0, 1, 0, 1, "Mã GV", headerStyle);
@@ -88,34 +87,25 @@ public class ExcelHandler {
                 row1.getCell(3).setCellStyle(headerStyle);
                 row1.getCell(4).setCellStyle(headerStyle);
 
-                Map<String, PhanCong[]> byPhong = new LinkedHashMap<>();
+                // Group theo phòng để ghi 2 giám thị vào 2 dòng chung STT
+                Map<String, List<PhanCong>> byPhong = new LinkedHashMap<>();
                 for (PhanCong pc : entry.getValue()) {
-                    PhanCong[] pair = byPhong.computeIfAbsent(pc.getTenPhong(), k -> new PhanCong[2]);
-                    if ("Giám thị 1".equals(pc.getVaiTro())) pair[0] = pc;
-                    else pair[1] = pc;
+                    byPhong.computeIfAbsent(pc.getTenPhong(), k -> new ArrayList<>()).add(pc);
                 }
 
                 int rowNum = 2;
-                int rowStt = 1; 
-                for (Map.Entry<String, PhanCong[]> e : byPhong.entrySet()) {
-                    PhanCong gt1 = e.getValue()[0];
-                    PhanCong gt2 = e.getValue()[1];
-
-                    Row r1 = sheet.createRow(rowNum++);
-                    setCell(r1, 0, rowStt++, (rowNum % 2 == 0) ? altStyle : dataStyle);
-                    setCell(r1, 1, gt1.getMaGV(), (rowNum % 2 == 0) ? altStyle : dataStyle);
-                    setCell(r1, 2, gt1.getHoTen(), (rowNum % 2 == 0) ? altStyle : dataStyle);
-                    setCell(r1, 3, "X", centerStyle);
-                    setCell(r1, 4, "", (rowNum % 2 == 0) ? altStyle : dataStyle);
-                    setCell(r1, 5, e.getKey(), (rowNum % 2 == 0) ? altStyle : dataStyle);
-
-                    Row r2 = sheet.createRow(rowNum++);
-                    setCell(r2, 0, rowStt++, (rowNum % 2 == 0) ? altStyle : dataStyle);
-                    setCell(r2, 1, gt2.getMaGV(), (rowNum % 2 == 0) ? altStyle : dataStyle);
-                    setCell(r2, 2, gt2.getHoTen(), (rowNum % 2 == 0) ? altStyle : dataStyle);
-                    setCell(r2, 3, "", (rowNum % 2 == 0) ? altStyle : dataStyle);
-                    setCell(r2, 4, "X", centerStyle);
-                    setCell(r2, 5, e.getKey(), (rowNum % 2 == 0) ? altStyle : dataStyle);
+                int sttCount = 1;
+                for (var e : byPhong.entrySet()) {
+                    for (PhanCong pc : e.getValue()) {
+                        Row r = sheet.createRow(rowNum++);
+                        CellStyle style = (rowNum % 2 == 0) ? altStyle : dataStyle;
+                        setCell(r, 0, sttCount++, style); // STT 1, 2, 3...
+                        setCell(r, 1, pc.getMaGV(), style);
+                        setCell(r, 2, pc.getHoTen(), style);
+                        setCell(r, 3, pc.getVaiTro().contains("1") ? "X" : "", centerStyle);
+                        setCell(r, 4, pc.getVaiTro().contains("2") ? "X" : "", centerStyle);
+                        setCell(r, 5, pc.getTenPhong(), style);
+                    }
                 }
                 for (int i = 0; i < 6; i++) sheet.autoSizeColumn(i);
             }
@@ -123,95 +113,112 @@ public class ExcelHandler {
         }
     }
 
-    // ==================== 4. GHI FILE GIÁM SÁT ====================
+    // ==================== 3. GHI FILE GIÁM SÁT (ĐÃ THAM KHẢO CODE PHÂN CÔNG - CHIA SHEET THEO CA) ====================
     public static void writeGiamSat(List<GiamSat> allList, String filePath) throws IOException {
+        // 1. Nhóm theo ca (Dùng TreeMap để tự động sắp xếp Ca 1 -> Ca 2 -> Ca 3)
+        Map<Integer, List<GiamSat>> byCa = new TreeMap<>();
+        for (GiamSat gs : allList) {
+            byCa.computeIfAbsent(gs.getCaThi(), k -> new ArrayList<>()).add(gs);
+        }
+
         try (Workbook wb = new XSSFWorkbook()) {
             CellStyle headerStyle = createHeaderStyle(wb);
             CellStyle dataStyle = createDataStyle(wb);
-            
-            Sheet sheet = wb.createSheet("GiamSat");
-            String[] headers = {"STT", "Mã GV", "Họ và tên", "Phòng thi được giám sát"};
-            Row hRow = sheet.createRow(0);
-            for(int i=0; i<headers.length; i++) {
-                Cell c = hRow.createCell(i); c.setCellValue(headers[i]); c.setCellStyle(headerStyle);
+            CellStyle altStyle = createAltStyle(wb);
+
+            // 2. Duyệt qua từng ca trong Map để tạo Sheet riêng
+            for (Map.Entry<Integer, List<GiamSat>> entry : byCa.entrySet()) {
+                int caThi = entry.getKey();
+                List<GiamSat> dsGSTheoCa = entry.getValue();
+
+                // TẠO SHEET MỚI Y HỆT CODE PHÂN CÔNG
+                Sheet sheet = wb.createSheet("Ca " + caThi); 
+
+                // Vẽ Header cho từng Sheet
+                String[] headers = {"STT", "Mã GV", "Họ và tên", "Phòng thi được giám sát"};
+                Row headerRow = sheet.createRow(0);
+                for (int i = 0; i < headers.length; i++) {
+                    Cell cell = headerRow.createCell(i);
+                    cell.setCellValue(headers[i]);
+                    cell.setCellStyle(headerStyle);
+                }
+
+                // 3. Ghi dữ liệu giám sát của riêng ca này vào sheet
+                int rowNum = 1;
+                int sttTrongCa = 1; // Reset STT về 1 khi sang sheet mới
+                for (GiamSat gs : dsGSTheoCa) {
+                    Row row = sheet.createRow(rowNum++);
+                    CellStyle currentStyle = (rowNum % 2 == 0) ? altStyle : dataStyle;
+                    
+                    setCell(row, 0, sttTrongCa++, currentStyle); // STT tịnh tiến 1, 2, 3...
+                    setCell(row, 1, gs.getMaGV(), currentStyle);
+                    setCell(row, 2, gs.getHoTen(), currentStyle);
+                    setCell(row, 3, gs.getPhongGiamSat(), currentStyle);
+                }
+
+                // Tự động căn chỉnh độ rộng cột cho từng sheet
+                for (int i = 0; i < 4; i++) {
+                    sheet.autoSizeColumn(i);
+                }
             }
 
-            int rowNum = 1;
-            for (GiamSat gs : allList) {
-                Row r = sheet.createRow(rowNum++);
-                setCell(r, 0, gs.getStt(), dataStyle);
-                setCell(r, 1, gs.getMaGV(), dataStyle);
-                setCell(r, 2, gs.getHoTen(), dataStyle);
-                setCell(r, 3, gs.getPhongGiamSat(), dataStyle);
+            // 4. Xuất file
+            try (FileOutputStream fos = new FileOutputStream(filePath)) {
+                wb.write(fos);
             }
-            for(int i=0; i<4; i++) sheet.autoSizeColumn(i);
-            try (FileOutputStream fos = new FileOutputStream(filePath)) { wb.write(fos); }
         }
+        System.out.println("[Excel] Đã đồng bộ chia ca cho file Giám sát.");
     }
 
-    // ==================== CÁC HÀM HỖ TRỢ (HELPER) ====================
-    private static void createMergedCell(Sheet sheet, Workbook wb, Row row, int col, int r1, int r2, String val, CellStyle style) {
-        sheet.addMergedRegion(new CellRangeAddress(r1, r2, col, col));
-        Cell c = row.createCell(col); c.setCellValue(val); c.setCellStyle(style);
+    // --- CÁC HÀM TRỢ GIÚP (HELPER) ---
+    private static void createMergedCell(Sheet s, Workbook wb, Row r, int col, int r1, int r2, String val, CellStyle st) {
+        s.addMergedRegion(new CellRangeAddress(r1, r2, col, col));
+        Cell c = r.createCell(col); c.setCellValue(val); c.setCellStyle(st);
     }
-
-    private static void setCell(Row row, int col, Object val, CellStyle style) {
-        Cell c = row.createCell(col);
+    private static void setCell(Row r, int col, Object val, CellStyle st) {
+        Cell c = r.createCell(col);
         if (val instanceof Integer) c.setCellValue((Integer) val);
-        else c.setCellValue(val.toString());
-        c.setCellStyle(style);
+        else c.setCellValue(val != null ? val.toString() : "");
+        c.setCellStyle(st);
     }
-
     private static String safeStr(Cell c) {
         if (c == null) return "";
         if (c.getCellType() == CellType.NUMERIC) return String.valueOf((long)c.getNumericCellValue());
         return c.getStringCellValue().trim();
     }
-
     private static int safeInt(Cell c) {
         if (c == null) return 0;
         if (c.getCellType() == CellType.NUMERIC) return (int)c.getNumericCellValue();
         try { return Integer.parseInt(c.getStringCellValue()); } catch(Exception e) { return 0; }
     }
-
     private static String safeDate(Cell c) {
         if (c == null) return "";
-        if (DateUtil.isCellDateFormatted(c)) return new SimpleDateFormat("dd/MM/yyyy").format(c.getDateCellValue());
+        if (c.getCellType() == CellType.NUMERIC && DateUtil.isCellDateFormatted(c)) return new SimpleDateFormat("dd/MM/yyyy").format(c.getDateCellValue());
         return safeStr(c);
     }
-
     private static boolean isEmptyRow(Row row) {
         if (row == null) return true;
-        for (Cell cell : row) {
-            if (cell != null && cell.getCellType() != CellType.BLANK) return false;
-        }
+        for (Cell cell : row) if (cell != null && cell.getCellType() != CellType.BLANK) return false;
         return true;
     }
-
     private static CellStyle createHeaderStyle(Workbook wb) {
         CellStyle s = wb.createCellStyle();
         Font f = wb.createFont(); f.setBold(true); f.setColor(IndexedColors.WHITE.getIndex());
         s.setFont(f); s.setFillForegroundColor(IndexedColors.DARK_BLUE.getIndex());
         s.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-        s.setAlignment(HorizontalAlignment.CENTER); s.setBorderBottom(BorderStyle.THIN);
-        return s;
+        s.setAlignment(HorizontalAlignment.CENTER); s.setVerticalAlignment(VerticalAlignment.CENTER);
+        s.setBorderBottom(BorderStyle.THIN); return s;
     }
-
     private static CellStyle createDataStyle(Workbook wb) {
         CellStyle s = wb.createCellStyle(); s.setBorderBottom(BorderStyle.THIN); return s;
     }
-
     private static CellStyle createAltStyle(Workbook wb) {
-        CellStyle s = wb.createCellStyle();
-        s.setFillForegroundColor(IndexedColors.LIGHT_CORNFLOWER_BLUE.getIndex());
-        s.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-        s.setBorderBottom(BorderStyle.THIN); return s;
+        CellStyle s = wb.createCellStyle(); s.setFillForegroundColor(IndexedColors.LIGHT_CORNFLOWER_BLUE.getIndex());
+        s.setFillPattern(FillPatternType.SOLID_FOREGROUND); s.setBorderBottom(BorderStyle.THIN); return s;
     }
-
     private static CellStyle createCenterStyle(Workbook wb) {
         CellStyle s = wb.createCellStyle(); s.setAlignment(HorizontalAlignment.CENTER);
         s.setFillForegroundColor(IndexedColors.LIGHT_YELLOW.getIndex());
-        s.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-        s.setBorderBottom(BorderStyle.THIN); return s;
+        s.setFillPattern(FillPatternType.SOLID_FOREGROUND); s.setBorderBottom(BorderStyle.THIN); return s;
     }
 }
