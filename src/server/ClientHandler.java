@@ -1,11 +1,27 @@
 package server;
 
-import common.*;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.net.Socket;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
+
+import common.CanBo;
+import common.GiamSat;
+import common.PhanCong;
+import common.PhongThi;
+import common.Protocol;
+
 
 /**
  * Xử lý một kết nối Client trong luồng riêng
@@ -22,6 +38,8 @@ import java.util.function.Consumer;
  *   Server → "DONE\n"
  */
 public class ClientHandler implements Runnable {
+
+    private static final boolean SAVE_TO_MYSQL = false;
 
     private final Socket socket;
     private final String workDir;
@@ -90,7 +108,10 @@ public class ClientHandler implements Runnable {
                 sendLog(writer, String.format("Sử dụng: %d cán bộ, %d phòng thi", canBoList.size(), phongList.size()));
 
                 // 5. Import vào DB (nếu kết nối được)
-                boolean dbOk = DatabaseHelper.testConnection();
+                boolean dbOk = SAVE_TO_MYSQL && DatabaseHelper.testConnection();
+                if (!SAVE_TO_MYSQL) {
+                    sendLog(writer, "Bo qua luu MySQL de tao file Excel nhanh hon.");
+                }
                 if (dbOk) {
                     sendLog(writer, "Đang lưu dữ liệu vào MySQL...");
                     try {
@@ -101,7 +122,7 @@ public class ClientHandler implements Runnable {
                         sendLog(writer, "⚠️ Lỗi DB (tiếp tục không dùng DB): " + e.getMessage());
                         dbOk = false;
                     }
-                } else {
+                } else if (SAVE_TO_MYSQL) {
                     sendLog(writer, "⚠️ Không kết nối được MySQL - tiếp tục không dùng DB.");
                 }
 
