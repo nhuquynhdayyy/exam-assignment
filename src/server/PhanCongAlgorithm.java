@@ -12,14 +12,14 @@ public class PhanCongAlgorithm {
             List<PhanCong> outPC,
             List<GiamSat> outGS)
     {
-        int n = phongList.size(); // 783
-        int m = canBoList.size(); // 1600
+        int n = phongList.size();
+        int m = canBoList.size();
 
         for (int s = 1; s <= soCa; s++) {
             int shift = (s - 1) * n;
             Set<String> usedThisCa = new HashSet<>();
 
-            // 1. Phân công Giám thị (1566 người)
+            // 1. Phân công Giám thị
             for (int i = 0; i < n; i++) {
                 CanBo gt1 = canBoList.get((i + shift) % m);
                 CanBo gt2 = canBoList.get((i + n + shift) % m);
@@ -31,13 +31,13 @@ public class PhanCongAlgorithm {
                 usedThisCa.add(gt2.getMaGV());
             }
 
-            // 2. Phân công Giám sát (34 người còn lại)
+            // 2. Phân công Giám sát
             List<CanBo> gsPool = new ArrayList<>();
             for (CanBo cb : canBoList) {
                 if (!usedThisCa.contains(cb.getMaGV())) gsPool.add(cb);
             }
 
-            int soGS = gsPool.size(); // Sẽ ra đúng 34
+            int soGS = gsPool.size();
             if (soGS > 0) {
                 // Thuật toán chia kẹo: mỗi người ít nhất 'phongCoBan' phòng, 'phanDu' người đầu nhận thêm 1
                 int phongCoBan = n / soGS; // 783 / 34 = 23
