@@ -9,14 +9,6 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Lớp helper tương tác với MySQL
- * Schema: phan_cong_thi
- *   - can_bo (stt, ma_gv, ho_ten, ngay_sinh, don_vi)
- *   - phong_thi (stt, ten_phong, ghi_chu)
- *   - ket_qua_phan_cong (id, ca_thi, ma_gv, ho_ten, loai_gt, ten_phong)
- *   - ket_qua_giam_sat (id, ca_thi, ma_gv, ho_ten, phong_gs)
- */
 public class DatabaseHelper {
 
     private static final String URL      = "jdbc:mysql://localhost:3306/phan_cong_thi?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8";
@@ -25,7 +17,6 @@ public class DatabaseHelper {
 
     private static Connection connection;
 
-    /** Mở kết nối (singleton) */
     public static Connection getConnection() throws SQLException {
         if (connection == null || connection.isClosed()) {
             connection = DriverManager.getConnection(URL, USER, PASSWORD);
@@ -33,7 +24,6 @@ public class DatabaseHelper {
         return connection;
     }
 
-    /** Tạo các bảng nếu chưa tồn tại */
     public static void initSchema() throws SQLException {
         Connection conn = getConnection();
         String[] sqls = {
@@ -81,7 +71,6 @@ public class DatabaseHelper {
         System.out.println("[DB] Schema đã khởi tạo xong.");
     }
 
-    /** Xóa và nạp lại dữ liệu cán bộ (giới hạn m bản ghi) */
     public static void importCanBo(List<CanBo> list, int m) throws SQLException {
         Connection conn = getConnection();
         conn.createStatement().execute("TRUNCATE TABLE can_bo");
@@ -103,7 +92,6 @@ public class DatabaseHelper {
         System.out.println("[DB] Đã import " + Math.min(list.size(), m > 0 ? m : list.size()) + " cán bộ.");
     }
 
-    /** Xóa và nạp lại dữ liệu phòng thi (giới hạn n bản ghi) */
     public static void importPhongThi(List<PhongThi> list, int n) throws SQLException {
         Connection conn = getConnection();
         conn.createStatement().execute("TRUNCATE TABLE phong_thi");
@@ -123,7 +111,6 @@ public class DatabaseHelper {
         System.out.println("[DB] Đã import " + Math.min(list.size(), n > 0 ? n : list.size()) + " phòng thi.");
     }
 
-    /** Lấy danh sách cán bộ từ DB */
     public static List<CanBo> getCanBo() throws SQLException {
         List<CanBo> list = new ArrayList<>();
         String sql = "SELECT stt, ma_gv, ho_ten, ngay_sinh, don_vi FROM can_bo ORDER BY stt";
@@ -141,7 +128,6 @@ public class DatabaseHelper {
         return list;
     }
 
-    /** Lấy danh sách phòng thi từ DB */
     public static List<PhongThi> getPhongThi() throws SQLException {
         List<PhongThi> list = new ArrayList<>();
         String sql = "SELECT stt, ten_phong, ghi_chu FROM phong_thi ORDER BY stt";
@@ -157,7 +143,6 @@ public class DatabaseHelper {
         return list;
     }
 
-    /** Lưu kết quả phân công vào DB (TRUNCATE trước) */
     public static void saveKetQua(List<PhanCong> dsPC, List<GiamSat> dsGS) throws SQLException {
         Connection conn = getConnection();
         conn.createStatement().execute("TRUNCATE TABLE ket_qua_phan_cong");
@@ -197,7 +182,6 @@ public class DatabaseHelper {
         System.out.println("[DB] Lưu kết quả: " + dsPC.size() + " phân công, " + dsGS.size() + " giám sát.");
     }
 
-    /** Lấy kết quả phân công từ DB theo ca */
     public static List<PhanCong> getKetQuaPhanCong(int caThi) throws SQLException {
         List<PhanCong> list = new ArrayList<>();
         String sql = "SELECT ca_thi, ma_gv, ho_ten, loai_gt, ten_phong FROM ket_qua_phan_cong WHERE ca_thi=? ORDER BY ten_phong";
@@ -214,7 +198,6 @@ public class DatabaseHelper {
         return list;
     }
 
-    /** Lấy danh sách các ca thi đã có */
     public static List<Integer> getDistinctCaThi() throws SQLException {
         List<Integer> list = new ArrayList<>();
         String sql = "SELECT DISTINCT ca_thi FROM ket_qua_phan_cong ORDER BY ca_thi";
@@ -224,7 +207,6 @@ public class DatabaseHelper {
         return list;
     }
 
-    /** Kiểm tra kết nối MySQL có thành công không */
     public static boolean testConnection() {
         try {
             getConnection();

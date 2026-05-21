@@ -2,9 +2,6 @@ package common;
 
 import java.io.Serializable;
 
-/**
- * Model cán bộ coi thi
- */
 public class CanBo implements Serializable {
     private static final long serialVersionUID = 1L;
 

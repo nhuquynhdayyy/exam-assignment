@@ -10,7 +10,6 @@ import java.util.*;
 
 public class ExcelHandler {
 
-    // ==================== 1. ĐỌC FILE CÁN BỘ ====================
     public static List<CanBo> readCanBo(String filePath) throws IOException {
         List<CanBo> list = new ArrayList<>();
         try (FileInputStream fis = new FileInputStream(filePath);
@@ -21,10 +20,10 @@ public class ExcelHandler {
                 if (firstRow) { firstRow = false; continue; }
                 if (isEmptyRow(row)) continue;
                 CanBo cb = new CanBo();
-                cb.setHoTen(safeStr(row.getCell(1)));   // Cột B
-                cb.setNgaySinh(safeDate(row.getCell(2))); // Cột C
-                cb.setMaGV(safeStr(row.getCell(3)));    // Cột D
-                cb.setDonVi(safeStr(row.getCell(4)));   // Cột E
+                cb.setHoTen(safeStr(row.getCell(1)));
+                cb.setNgaySinh(safeDate(row.getCell(2)));
+                cb.setMaGV(safeStr(row.getCell(3)));
+                cb.setDonVi(safeStr(row.getCell(4)));
                 if (!cb.getMaGV().isBlank()) list.add(cb);
             }
         }
@@ -50,68 +49,79 @@ public class ExcelHandler {
         return list;
     }
 
-    // ==================== 2. GHI FILE PHÂN CÔNG (ĐEN TRẮNG) ====================
     public static void writePhanCong(List<PhanCong> allList, String filePath) throws IOException {
+        final int MAX_PHONG_PER_SHEET = 15;
+
         Map<Integer, List<PhanCong>> byCa = new TreeMap<>();
         for (PhanCong pc : allList) {
             byCa.computeIfAbsent(pc.getCaThi(), k -> new ArrayList<>()).add(pc);
         }
 
         try (Workbook wb = new XSSFWorkbook()) {
-            CellStyle headerStyle = createSimpleHeaderStyle(wb);
-            CellStyle dataStyle = createSimpleDataStyle(wb);
-            CellStyle centerStyle = createSimpleCenterStyle(wb);
+            CellStyle headerStyle  = createSimpleHeaderStyle(wb);
+            CellStyle dataStyle    = createSimpleDataStyle(wb);
+            CellStyle centerStyle  = createSimpleCenterStyle(wb);
 
             for (Map.Entry<Integer, List<PhanCong>> entry : byCa.entrySet()) {
-                Sheet sheet = wb.createSheet("Ca " + entry.getKey());
-                
-                Row row0 = sheet.createRow(0);
-                createMergedCell(sheet, wb, row0, 0, 0, 1, "STT", headerStyle);
-                createMergedCell(sheet, wb, row0, 1, 0, 1, "Mã GV", headerStyle);
-                createMergedCell(sheet, wb, row0, 2, 0, 1, "Họ và tên", headerStyle);
-                sheet.addMergedRegion(new CellRangeAddress(0, 0, 3, 4));
-                Cell gtHeader = row0.createCell(3);
-                gtHeader.setCellValue("GIÁM THỊ");
-                gtHeader.setCellStyle(headerStyle);
-                createMergedCell(sheet, wb, row0, 5, 0, 1, "Phòng thi", headerStyle);
-
-                Row row1 = sheet.createRow(1);
-                row1.createCell(3).setCellValue("Giám thị 1");
-                row1.createCell(4).setCellValue("Giám thị 2");
-                row1.getCell(3).setCellStyle(headerStyle);
-                row1.getCell(4).setCellStyle(headerStyle);
+                int caThi = entry.getKey();
 
                 Map<String, List<PhanCong>> byPhong = new LinkedHashMap<>();
                 for (PhanCong pc : entry.getValue()) {
                     byPhong.computeIfAbsent(pc.getTenPhong(), k -> new ArrayList<>()).add(pc);
                 }
 
-                int rowNum = 2;
-                int sttCount = 1;
-                for (var e : byPhong.entrySet()) {
-                    for (PhanCong pc : e.getValue()) {
-                        Row r = sheet.createRow(rowNum++);
-                        setCell(r, 0, sttCount++, dataStyle);
-                        setCell(r, 1, pc.getMaGV(), dataStyle);
-                        setCell(r, 2, pc.getHoTen(), dataStyle);
-                        setCell(r, 3, pc.getVaiTro().contains("1") ? "X" : "", centerStyle);
-                        setCell(r, 4, pc.getVaiTro().contains("2") ? "X" : "", centerStyle);
-                        setCell(r, 5, pc.getTenPhong(), dataStyle);
+                List<String> phongKeys = new ArrayList<>(byPhong.keySet());
+                int totalPhong = phongKeys.size();
+                int trangIndex = 1;
+
+                for (int start = 0; start < totalPhong; start += MAX_PHONG_PER_SHEET) {
+                    int end = Math.min(start + MAX_PHONG_PER_SHEET, totalPhong);
+                    List<String> phongTrang = phongKeys.subList(start, end);
+
+                    String sheetName = "Ca " + caThi + " Trang " + trangIndex++;
+                    Sheet sheet = wb.createSheet(sheetName);
+
+                    Row row0 = sheet.createRow(0);
+                    createMergedCell(sheet, wb, row0, 0, 0, 1, "STT",        headerStyle);
+                    createMergedCell(sheet, wb, row0, 1, 0, 1, "Mã GV",      headerStyle);
+                    createMergedCell(sheet, wb, row0, 2, 0, 1, "Họ và tên",  headerStyle);
+                    sheet.addMergedRegion(new CellRangeAddress(0, 0, 3, 4));
+                    Cell gtHeader = row0.createCell(3);
+                    gtHeader.setCellValue("GIÁM THỊ");
+                    gtHeader.setCellStyle(headerStyle);
+                    createMergedCell(sheet, wb, row0, 5, 0, 1, "Phòng thi",  headerStyle);
+
+                    Row row1 = sheet.createRow(1);
+                    Cell c3 = row1.createCell(3); c3.setCellValue("Giám thị 1"); c3.setCellStyle(headerStyle);
+                    Cell c4 = row1.createCell(4); c4.setCellValue("Giám thị 2"); c4.setCellStyle(headerStyle);
+
+                    int rowNum    = 2;
+                    int sttCount  = 1;
+                    for (String tenPhong : phongTrang) {
+                        for (PhanCong pc : byPhong.get(tenPhong)) {
+                            Row r = sheet.createRow(rowNum++);
+                            setCell(r, 0, sttCount++,                              dataStyle);
+                            setCell(r, 1, pc.getMaGV(),                            dataStyle);
+                            setCell(r, 2, pc.getHoTen(),                           dataStyle);
+                            setCell(r, 3, pc.getVaiTro().contains("1") ? "X" : "", centerStyle);
+                            setCell(r, 4, pc.getVaiTro().contains("2") ? "X" : "", centerStyle);
+                            setCell(r, 5, pc.getTenPhong(),                        dataStyle);
+                        }
+                    }
+
+                    for (int i = 0; i < 6; i++) {
+                        sheet.autoSizeColumn(i);
+                        if (i == 5) sheet.setColumnWidth(i, sheet.getColumnWidth(i) + 1500);
                     }
                 }
-                
-                // TỰ ĐỘNG GIÃN CỘT VÀ TĂNG KÍCH THƯỚC CỘT PHÒNG THI
-                for (int i = 0; i < 6; i++) {
-                    sheet.autoSizeColumn(i);
-                    // Cột phòng thi (index 5) cộng thêm khoảng trống
-                    if (i == 5) sheet.setColumnWidth(i, sheet.getColumnWidth(i) + 1500); 
-                }
             }
-            try (FileOutputStream fos = new FileOutputStream(filePath)) { wb.write(fos); }
+
+            try (FileOutputStream fos = new FileOutputStream(filePath)) {
+                wb.write(fos);
+            }
         }
     }
 
-    // ==================== 3. GHI FILE GIÁM SÁT (ĐEN TRẮNG) ====================
     public static void writeGiamSat(List<GiamSat> allList, String filePath) throws IOException {
         Map<Integer, List<GiamSat>> byCa = new TreeMap<>();
         for (GiamSat gs : allList) {
@@ -147,8 +157,6 @@ public class ExcelHandler {
         }
     }
 
-    // ==================== CÁC STYLE ĐƠN GIẢN (ĐEN TRẮNG) ====================
-    
     private static CellStyle createSimpleHeaderStyle(Workbook wb) {
         CellStyle s = wb.createCellStyle();
         Font f = wb.createFont();
@@ -179,7 +187,6 @@ public class ExcelHandler {
         return s;
     }
 
-    // --- CÁC HÀM TRỢ GIÚP (HELPER) GIỮ NGUYÊN ---
     private static void createMergedCell(Sheet s, Workbook wb, Row r, int col, int r1, int r2, String val, CellStyle st) {
         s.addMergedRegion(new CellRangeAddress(r1, r2, col, col));
         Cell c = r.createCell(col); c.setCellValue(val); c.setCellStyle(st);

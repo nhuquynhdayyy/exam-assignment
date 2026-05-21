@@ -7,25 +7,11 @@ import java.net.Socket;
 import java.util.*;
 import java.util.function.Consumer;
 
-/**
- * Xử lý một kết nối Client trong luồng riêng
- *
- * Giao thức mới (gộp vào một lần):
- *   Client → "PROCESS:{n}:{m}:{k}\n"
- *   Server → "READY\n"
- *   Client → [long canBoSize][bytes canBo xlsx]
- *   Client → [long phongSize][bytes phong xlsx]
- *   Server xử lý (import DB, phân công, xuất Excel)...
- *   Server → "LOG:message\n" (nhiều lần, client hiển thị log)
- *   Server → "READY_PHANCONG\n" + [long size][bytes]
- *   Server → "READY_GIAMSAT\n"  + [long size][bytes]
- *   Server → "DONE\n"
- */
 public class ClientHandler implements Runnable {
 
     private final Socket socket;
     private final String workDir;
-    private final Consumer<String> serverLogger;  // log lên ServerGUI
+    private final Consumer<String> serverLogger;
 
     public ClientHandler(Socket socket, String workDir, Consumer<String> serverLogger) {
         this.socket       = socket;
@@ -52,7 +38,6 @@ public class ClientHandler implements Runnable {
             log("[Server] Lệnh nhận: " + line);
 
             if (line.startsWith(Protocol.CMD_PROCESS)) {
-                // Parse "PROCESS:{n}:{m}:{k}"
                 String[] parts = line.split(":");
                 int n = parts.length > 1 ? parseInt(parts[1]) : 0;
                 int m = parts.length > 2 ? parseInt(parts[2]) : 0;
@@ -60,26 +45,21 @@ public class ClientHandler implements Runnable {
 
                 log(String.format("[Server] Tham số: n=%d phòng, m=%d giám thị, k=%d ca", n, m, k));
 
-                // Báo sẵn sàng nhận file
                 writer.println(Protocol.RESP_READY);
                 writer.flush();
 
-                // 1. Nhận file cán bộ
                 String canBoPath = workDir + File.separator + Protocol.FILE_CANBO;
                 receiveFile(dis, canBoPath, "cán bộ");
                 sendLog(writer, "Đã nhận file cán bộ (" + new File(canBoPath).length() + " bytes)");
 
-                // 2. Nhận file phòng thi
                 String phongPath = workDir + File.separator + Protocol.FILE_PHONG;
                 receiveFile(dis, phongPath, "phòng thi");
                 sendLog(writer, "Đã nhận file phòng thi (" + new File(phongPath).length() + " bytes)");
 
-                // 3. Đọc Excel
                 sendLog(writer, "Đang đọc dữ liệu Excel...");
                 List<CanBo>    canBoAll  = ExcelHandler.readCanBo(canBoPath);
                 List<PhongThi> phongAll  = ExcelHandler.readPhongThi(phongPath);
 
-                // 4. Giới hạn theo n, m
                 List<CanBo>    canBoList = n > 0 && m > 0
                     ? canBoAll.subList(0, Math.min(m, canBoAll.size()))
                     : canBoAll;
@@ -89,7 +69,6 @@ public class ClientHandler implements Runnable {
 
                 sendLog(writer, String.format("Sử dụng: %d cán bộ, %d phòng thi", canBoList.size(), phongList.size()));
 
-                // 5. Import vào DB (nếu kết nối được)
                 boolean dbOk = DatabaseHelper.testConnection();
                 if (dbOk) {
                     sendLog(writer, "Đang lưu dữ liệu vào MySQL...");
@@ -105,7 +84,6 @@ public class ClientHandler implements Runnable {
                     sendLog(writer, "⚠️ Không kết nối được MySQL - tiếp tục không dùng DB.");
                 }
 
-                // 6. Chạy thuật toán phân công
                 sendLog(writer, "Đang thực hiện phân công " + k + " ca thi...");
                 long t0 = System.currentTimeMillis();
                 List<PhanCong> dsPC = new ArrayList<>();
@@ -114,7 +92,6 @@ public class ClientHandler implements Runnable {
                 long elapsed = System.currentTimeMillis() - t0;
                 sendLog(writer, String.format("✅ Phân công xong: %d bản ghi PC, %d bản ghi GS (%dms)", dsPC.size(), dsGS.size(), elapsed));
 
-                // 7. Lưu kết quả vào DB
                 if (dbOk) {
                     try {
                         DatabaseHelper.saveKetQua(dsPC, dsGS);
@@ -124,7 +101,6 @@ public class ClientHandler implements Runnable {
                     }
                 }
 
-                // 8. Xuất file Excel kết quả
                 String pcPath = workDir + File.separator + Protocol.FILE_PHANCONG;
                 String gsPath = workDir + File.separator + Protocol.FILE_GIAMSAT;
                 sendLog(writer, "Đang xuất file Excel kết quả...");
@@ -134,12 +110,10 @@ public class ClientHandler implements Runnable {
 
                 log("[Server] File kết quả: " + pcPath + ", " + gsPath);
 
-                // 9. Gửi file PHANCONG
                 writer.println("READY_PHANCONG");
                 writer.flush();
                 sendFile(dos, pcPath);
 
-                // 10. Gửi file GIAMSAT
                 writer.println("READY_GIAMSAT");
                 writer.flush();
                 sendFile(dos, gsPath);
@@ -192,7 +166,6 @@ public class ClientHandler implements Runnable {
         log("[Server] Đã gửi file: " + filePath + " (" + file.length() + " bytes)");
     }
 
-    /** Gửi log message về client (client sẽ hiển thị lên log area) */
     private void sendLog(PrintWriter writer, String msg) {
         writer.println(Protocol.RESP_LOG + ":" + msg);
         writer.flush();

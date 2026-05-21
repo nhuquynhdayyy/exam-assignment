@@ -2,16 +2,13 @@ package common;
 
 import java.io.Serializable;
 
-/**
- * Cán bộ giám sát hành lang
- */
 public class GiamSat implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private int stt;
     private String maGV;
     private String hoTen;
-    private String phongGiamSat;  // Ví dụ: "Từ 128 đến 137"
+    private String phongGiamSat;
     private int caThi;
 
     public GiamSat() {}

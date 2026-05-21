@@ -2,18 +2,15 @@ package common;
 
 import java.io.Serializable;
 
-/**
- * Kết quả phân công giám thị cho một phòng thi
- */
 public class PhanCong implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private int stt;
     private String maGV;
     private String hoTen;
-    private String vaiTro;   // "Giám thị 1" hoặc "Giám thị 2"
+    private String vaiTro;
     private String tenPhong;
-    private int caThi;       // 1, 2, 3, ...
+    private int caThi;
 
     public PhanCong() {}
 

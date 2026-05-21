@@ -36,15 +36,6 @@ import javax.swing.border.LineBorder;
 
 import common.Protocol;
 
-
-/**
- * Server GUI - giao dien phia Server.
- * Tinh nang:
- * - Nut Bat dau / Dung server
- * - Hien thi log ket noi va xu ly
- * - Kiem tra trang thai MySQL
- * - Luu file ket qua vao thu muc server_data
- */
 public class ExamServer extends JFrame {
 
 
@@ -62,8 +53,6 @@ public class ExamServer extends JFrame {
     private static final Font FONT_UI = new Font("Segoe UI", Font.PLAIN, 13);
     private static final Font FONT_UI_BOLD = new Font("Segoe UI", Font.BOLD, 13);
 
-
-    // UI
     private JTextArea logArea;
     private JButton btnToggle;
     private JLabel lblStatus;
@@ -71,8 +60,6 @@ public class ExamServer extends JFrame {
     private JLabel lblDir;
     private JTextField txtPort;
 
-
-    // State
     private ServerSocket serverSocket;
     private ExecutorService pool;
     private volatile boolean running = false;
@@ -210,10 +197,6 @@ public class ExamServer extends JFrame {
         return bottom;
     }
 
-
-    // ==================== SERVER LOGIC ====================
-
-
     private void toggleServer() {
         if (!running) {
             startServer();
@@ -330,10 +313,6 @@ public class ExamServer extends JFrame {
         }).start();
     }
 
-
-    // ==================== HELPERS ====================
-
-
     private void log(String msg) {
         String time = new SimpleDateFormat("HH:mm:ss").format(new Date());
         String line = "[" + time + "] " + msg;
@@ -440,11 +419,6 @@ public class ExamServer extends JFrame {
         UIManager.put("OptionPane.messageFont", FONT_UI);
         UIManager.put("OptionPane.buttonFont", FONT_UI_BOLD);
     }
-
-
-    // ==================== MAIN ====================
-
-
     public static void main(String[] args) {
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());

@@ -19,7 +19,6 @@ public class PhanCongAlgorithm {
             int shift = (s - 1) * n;
             Set<String> usedThisCa = new HashSet<>();
 
-            // 1. Phân công Giám thị
             for (int i = 0; i < n; i++) {
                 CanBo gt1 = canBoList.get((i + shift) % m);
                 CanBo gt2 = canBoList.get((i + n + shift) % m);
@@ -31,7 +30,6 @@ public class PhanCongAlgorithm {
                 usedThisCa.add(gt2.getMaGV());
             }
 
-            // 2. Phân công Giám sát
             List<CanBo> gsPool = new ArrayList<>();
             for (CanBo cb : canBoList) {
                 if (!usedThisCa.contains(cb.getMaGV())) gsPool.add(cb);
@@ -39,10 +37,9 @@ public class PhanCongAlgorithm {
 
             int soGS = gsPool.size();
             if (soGS > 0) {
-                // Thuật toán chia kẹo: mỗi người ít nhất 'phongCoBan' phòng, 'phanDu' người đầu nhận thêm 1
-                int phongCoBan = n / soGS; // 783 / 34 = 23
-                int phanDu = n % soGS;     // 783 % 34 = 1
-                
+                int phongCoBan = n / soGS;
+                int phanDu = n % soGS;
+
                 int pointer = 0;
                 for (int gi = 0; gi < soGS; gi++) {
                     CanBo gs = gsPool.get(gi);

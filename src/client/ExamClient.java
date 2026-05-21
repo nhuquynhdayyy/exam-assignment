@@ -60,15 +60,6 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 
 import common.Protocol;
 
-
-/**
- * Client Swing - giao dien phia Client.
- *
- * Luu y ky thuat:
- * - Khong dung BufferedReader de doc socket khi phia sau con nhan file nhi phan.
- * - Dung DataInputStream de doc ca text line va binary file.
- * - readLineUtf8(dis) doc tung byte den \n, tranh doc lo sang du lieu file.
- */
 public class ExamClient extends JFrame {
 
 
@@ -85,44 +76,31 @@ public class ExamClient extends JFrame {
     private static final Font FONT_UI = new Font("Segoe UI", Font.PLAIN, 13);
     private static final Font FONT_UI_BOLD = new Font("Segoe UI", Font.BOLD, 13);
 
-
-    // UI - ket noi
     private JTextField txtServer;
     private JTextField txtPort;
     private JButton btnConnect;
 
-
-    // UI - tham so
     private JSpinner spinN;
     private JSpinner spinM;
     private JSpinner spinK;
 
-
-    // UI - file
     private JTextField txtCanBoFile;
     private JTextField txtPhongFile;
 
-
-    // UI - ket qua
     private JButton btnRun;
     private JButton btnViewPC;
     private JButton btnViewGS;
 
-
-    // UI - log
     private JTextArea logArea;
     private JProgressBar progressBar;
     private JLabel lblStatus;
     private JLabel lblCanBoState;
     private JLabel lblPhongState;
 
-
-    // State
     private String canBoFilePath = "";
     private String phongFilePath = "";
 
 
-    // Thu muc luu ket qua = thu muc hien tai, cung cho chay JAR
     private final String outputDir = System.getProperty("user.dir");
 
 
@@ -136,9 +114,6 @@ public class ExamClient extends JFrame {
         setVisible(true);
         log("Thu mục lưu kết quả: " + outputDir);
     }
-
-
-    // ==================== BUILD UI ====================
 
 
     private void buildUI() {
@@ -470,10 +445,6 @@ public class ExamClient extends JFrame {
         return statusBar;
     }
 
-
-    // ==================== ACTIONS ====================
-
-
     private void testConnection() {
         runAsync("TestConn", () -> {
             String host = txtServer.getText().trim();
@@ -553,8 +524,6 @@ public class ExamClient extends JFrame {
                      DataInputStream dis = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
                      DataOutputStream dos = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream()))) {
 
-
-                    // Gui lenh PROCESS dang text line de giu tuong thich voi server hien tai.
                     String cmd = Protocol.CMD_PROCESS + ":" + n + ":" + m + ":" + k;
                     writeLineUtf8(dos, cmd);
                     progress(10, "Chờ server sẵn sàng...");
@@ -649,10 +618,6 @@ public class ExamClient extends JFrame {
             }
         });
     }
-
-
-    // ==================== SOCKET HELPERS ====================
-
 
     private void writeLineUtf8(DataOutputStream dos, String text) throws IOException {
         dos.write(text.getBytes(StandardCharsets.UTF_8));
@@ -757,10 +722,6 @@ public class ExamClient extends JFrame {
         s.setSoTimeout(300_000);
         return s;
     }
-
-
-    // ==================== FILE / UI HELPERS ====================
-
 
     private void openFile(String fileName) {
         File f = new File(outputDir + File.separator + fileName);
@@ -1062,10 +1023,6 @@ public class ExamClient extends JFrame {
             return false;
         }
     }
-
-
-    // ==================== MAIN ====================
-
 
     public static void main(String[] args) {
         try {

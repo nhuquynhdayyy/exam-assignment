@@ -2,9 +2,6 @@ package common;
 
 import java.io.Serializable;
 
-/**
- * Model phòng thi
- */
 public class PhongThi implements Serializable {
     private static final long serialVersionUID = 1L;
 
